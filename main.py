@@ -12,11 +12,6 @@ class CreateBucketsForSelf:
     iam_client = None
 
     def __init__(self):
-        """
-        1. Initializes aws key and secret key,
-        2. Creates a connection to s3 and IAM
-        3. Call the automation stack
-        """
         f1 = False
         while not f1:
             # select a profile from credentials file or enter secret key and access key.
@@ -30,13 +25,6 @@ class CreateBucketsForSelf:
         return
 
     def create_connection_and_test(self, aws_access_key_id: str, aws_secret_access_key: str) -> bool:
-        """
-        Tests the connection with list bucket and checks if given keys work.
-        :param aws_access_key_id: key id.
-        :param aws_secret_access_key: secret access key.
-        :return:
-        :return: Boolean
-        """
         try:
             self.s3_client = boto3.client('s3',
                                           endpoint_url='https://s3.wasabisys.com',
@@ -61,10 +49,6 @@ class CreateBucketsForSelf:
         return False
 
     def get_credentials(self):
-        """
-        Gets Aws key and Secret key using profile or input.
-        :return: aws key id and aws secret key.
-        """
         credentials_verified = False
         aws_access_key_id = None
         aws_secret_access_key = None
@@ -89,10 +73,6 @@ class CreateBucketsForSelf:
 
     @staticmethod
     def select_profile():
-        """
-        Internal method for get_credentials, gets aws key and secret key from profile.
-        :return: aws_access_key_id, aws_secret_access_key
-        """
         f = False
         while not f:
             try:
@@ -118,11 +98,6 @@ class CreateBucketsForSelf:
 
     @staticmethod
     def verify_name(name: str) -> bool:
-        """
-        verifies the name according to aws complaince for naming.
-        :param name: name to be tested
-        :return: boolean true or false
-        """
         if name == "":
             print("$ name cannot be blank, retry again")
             return False
@@ -136,10 +111,6 @@ class CreateBucketsForSelf:
         return True
 
     def get_usernames(self) -> List[str]:
-        """
-        Takes input for username or a file (space separated names) that reads username line by line and creates users.
-        :return: list of valid usernames
-        """
         name_choice = input("$ Press 1 to input usernames. Press 2 to insert a file for usernames: ")
         users = []
         prefix_name = "wasabi-technologies-aws-"
@@ -183,11 +154,6 @@ class CreateBucketsForSelf:
         return users
 
     def create_user(self, user: str):
-        """
-        sends api call to create user.
-        :param user: username
-        :return: nothing or error
-        """
         try:
             response = self.iam_client.get_user(UserName=user)
             if 200 <= response['ResponseMetadata']['HTTPStatusCode'] < 300:
@@ -200,10 +166,6 @@ class CreateBucketsForSelf:
         return
 
     def create_access_key(self, user: str):
-        """
-        sends api call to create access keys and stores it in a file called keys.txt
-        :param user: username
-        """
         # append to file
         file = open("keys.txt", "a")
         try:
@@ -221,12 +183,7 @@ class CreateBucketsForSelf:
             raise e
         file.close()
 
-    def create_group_policy_and_attach(self, group_name):
-        """
-        sends api call to create group named admin. Creates a policy and attaches policy to the group.
-        :param group_name:
-        :return:
-        """
+    def create_group(self, group_name):
         group_response = None
         policy_name = None
         policy_name_verified = False
@@ -241,7 +198,7 @@ class CreateBucketsForSelf:
         except self.iam_client.exceptions.NoSuchEntityException:
             print("$ Group not found creating one now.")
             try:
-                group_response = self.iam_client.create_group_policy_and_attach(GroupName=group_name)
+                group_response = self.iam_client.create_group(GroupName=group_name)
             except Exception as e:
                 print(e)
         except Exception as e:
@@ -298,10 +255,6 @@ class CreateBucketsForSelf:
         return
 
     def create_bucket(self, user: str):
-        """
-        sends api call to create bucket.
-        :param user: username
-        """
         try:
             print("$ creating bucket named " + user)
             self.s3_client.create_bucket(Bucket=user)
@@ -316,9 +269,6 @@ class CreateBucketsForSelf:
             raise e
 
     def automate(self):
-        """
-        main function.
-        """
         # create users
         users = self.get_usernames()
 
@@ -331,10 +281,10 @@ class CreateBucketsForSelf:
         file.close()
 
         # 4. Check for Group or Create one
-        self.create_group_policy_and_attach(group_name="admin")
+        self.create_group(group_name="admin")
 
         for user in users:
-            print("-" * 15)
+            print("-"*15)
             # 1. create users on the Wasabi cloud
             self.create_user(user)
 
