@@ -53,12 +53,12 @@ class CreateBucketsForSelf:
     def create_connection_and_test(self, aws_access_key_id: str, aws_secret_access_key: str, region) -> bool:
         try:
             self.s3_client = client('s3',
-                                    endpoint_url='https://s3.' + region + '.wasabibeta.com',
+                                    endpoint_url='https://s3.' + region + '.wasabisys.com',
                                     aws_access_key_id=aws_access_key_id,
                                     aws_secret_access_key=aws_secret_access_key)
 
             self.iam_client = client('iam',
-                                     endpoint_url='https://iam.wasabibeta.com',
+                                     endpoint_url='https://iam.wasabisys.com',
                                      aws_access_key_id=aws_access_key_id,
                                      aws_secret_access_key=aws_secret_access_key,
                                      region_name='us-east-1')
