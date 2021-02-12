@@ -1,44 +1,70 @@
 from typing import List
-
-import boto3
+from boto3 import client, Session
 import re
 import json
-from os import path
+import csv
+from os import path, remove
 from botocore.exceptions import ProfileNotFound, ClientError
 
 
 class CreateBucketsForSelf:
     s3_client = None
     iam_client = None
+    list_buckets = None
+    max_buckets = 1000
 
     def __init__(self):
-        f1 = False
-        while not f1:
+        connection_tested = False
+        while not connection_tested:
             # select a profile from credentials file or enter secret key and access key.
             aws_access_key_id, aws_secret_access_key = self.get_credentials()
 
+            region = self.region_selection()
+
             # create a connection to s3 with those credentials.
-            f1 = self.create_connection_and_test(aws_access_key_id, aws_secret_access_key)
+            connection_tested = self.create_connection_and_test(aws_access_key_id, aws_secret_access_key, region)
 
         # call the automation function
         self.automate()
         return
 
-    def create_connection_and_test(self, aws_access_key_id: str, aws_secret_access_key: str) -> bool:
-        try:
-            self.s3_client = boto3.client('s3',
-                                          endpoint_url='https://s3.wasabisys.com',
-                                          aws_access_key_id=aws_access_key_id,
-                                          aws_secret_access_key=aws_secret_access_key)
+    @staticmethod
+    def region_selection():
+        dic = {"1": "us-east-1",
+               "2": "us-east-2",
+               "3": "us-central-1",
+               "4": "eu-central-1",
+               "5": "us-west-1"
+               }
+        region_selected = False
+        region = ""
+        while not region_selected:
+            choice = input("$ Select regions by typing a corresponding number\n"
+                           "$ 1: us-east-1\n"
+                           "$ 2: us-east-2\n"
+                           "$ 3: us-central-1\n"
+                           "$ 4: eu-central-1\n"
+                           "$ 5: us-west-1\n")
+            if str(choice) in dic:
+                region = dic[str(choice)]
+                region_selected = True
+        return region
 
-            self.iam_client = boto3.client('iam',
-                                           endpoint_url='https://iam.wasabisys.com',
-                                           aws_access_key_id=aws_access_key_id,
-                                           aws_secret_access_key=aws_secret_access_key,
-                                           region_name='us-east-1')
+    def create_connection_and_test(self, aws_access_key_id: str, aws_secret_access_key: str, region) -> bool:
+        try:
+            self.s3_client = client('s3',
+                                    endpoint_url='https://s3.' + region + '.wasabibeta.com',
+                                    aws_access_key_id=aws_access_key_id,
+                                    aws_secret_access_key=aws_secret_access_key)
+
+            self.iam_client = client('iam',
+                                     endpoint_url='https://iam.wasabibeta.com',
+                                     aws_access_key_id=aws_access_key_id,
+                                     aws_secret_access_key=aws_secret_access_key,
+                                     region_name='us-east-1')
 
             # Test credentials are working
-            self.s3_client.list_buckets()
+            self.list_buckets = self.s3_client.list_buckets()
             return True
 
         except ClientError:
@@ -76,7 +102,7 @@ class CreateBucketsForSelf:
         f = False
         while not f:
             try:
-                profiles = boto3.Session().available_profiles
+                profiles = Session().available_profiles
                 if len(profiles) == 0:
                     return None, None
                 print("$ Available Profiles: ", profiles)
@@ -85,7 +111,7 @@ class CreateBucketsForSelf:
                 return None, None
             profile_name = input("$ Profile name: ").strip().lower()
             try:
-                session = boto3.Session(profile_name=profile_name)
+                session = Session(profile_name=profile_name)
                 credentials = session.get_credentials()
                 aws_access_key_id = credentials.access_key
                 aws_secret_access_key = credentials.secret_key
@@ -113,44 +139,31 @@ class CreateBucketsForSelf:
     def get_usernames(self) -> List[str]:
         name_choice = input("$ Press 1 to input usernames. Press 2 to insert a file for usernames: ")
         users = []
-        prefix_name = "wasabi-technologies-aws-"
         # input usernames
         if name_choice.strip() == "1":
-            end = False
-            while not end:
-                user_verified = False
-                user = None
-                while not user_verified:
-                    user = input("$ enter username (usernames will be forced lowercase): ").strip().lower()
-                    # verify if username is valid
-                    user_verified = self.verify_name(user)
-                if prefix_name not in user:
-                    user = prefix_name + user
-                users.append(user)
-                end_adding_users = input(
-                    "$ leave blank to add more users, otherwise type "
-                    "something and enter to stop adding users: ").strip()
-                if end_adding_users != "":
-                    end = True
+            input_users = input(
+                "$ enter username or usernames each separated by a space (usernames will be forced lowercase): ") \
+                .strip().lower().split()
+
+            for user in input_users:
+                if self.verify_name(user):
+                    users.append(user)
+
         # insert users through file
         if name_choice.strip() == "2":
-            f = False
-            file_path = None
-            while not f:
-                file_path = input("$ Enter file path [file containing users each separated by a space]: ").strip()
-                if path.exists(file_path):
-                    f = True
-                else:
-                    print("$ File does not exist, please provide a valid path")
+            file_path = "Usernames.txt"
+            if not path.exists(file_path):
+                print(
+                    "$ File does not exist, please create 'Usernames.txt' and add users separated by "
+                    "spaces in this directory")
+                exit(1)
             file = open(file_path, 'r')
             for line in file:
                 for user in line.strip().lower().split():
-                    if not self.verify_name(user):
-                        print("> This username is not valid: ", user)
-                        continue
-                    if prefix_name not in user:
-                        user = prefix_name + user
-                    users.append(user)
+                    if self.verify_name(user):
+                        users.append(user)
+                    else:
+                        print("$ > This username is not valid: ", user)
         return users
 
     def create_user(self, user: str):
@@ -167,29 +180,27 @@ class CreateBucketsForSelf:
 
     def create_access_key(self, user: str):
         # append to file
-        file = open("keys.txt", "a")
-        try:
-            response = self.iam_client.list_access_keys(UserName=user)
-            if len(response['AccessKeyMetadata']) > 0:
-                print("$ key exists skipping.")
-            else:
-                print("$ creating keys for user: " + user)
-                response = self.iam_client.create_access_key(UserName=user)
-                file.write(
-                    response['AccessKey']['UserName'] + " " +
-                    response['AccessKey']['AccessKeyId'] + " " +
-                    response['AccessKey']['SecretAccessKey'] + "\n")
-        except Exception as e:
-            raise e
-        file.close()
+        with open('keys.csv', 'a', newline='') as csv_file:
+            file = csv.writer(csv_file)
+            try:
+                response = self.iam_client.list_access_keys(UserName=user)
+                if len(response['AccessKeyMetadata']) > 0:
+                    print(
+                        "$ key exists for this user, please check for existing access "
+                        "key or delete current to generate a new one. skipping")
+                else:
+                    print("$ creating keys for user: " + user)
+                    response = self.iam_client.create_access_key(UserName=user)
+                    dic = [str(response['AccessKey']['UserName']),
+                           str(response['AccessKey']['AccessKeyId']),
+                           str(response['AccessKey']['SecretAccessKey'])]
+                    file.writerow(dic)
+            except Exception as e:
+                raise e
 
     def create_group(self, group_name):
-        group_response = None
-        policy_name = None
-        policy_name_verified = False
-        policy_found = False
-        policy_file_path = None
-        policy_arn = None
+        policy_name = "automation-policy"
+        policy_file_path = "policy.json"
 
         try:
             group_response = self.iam_client.get_group(GroupName=group_name)
@@ -200,64 +211,48 @@ class CreateBucketsForSelf:
             try:
                 group_response = self.iam_client.create_group(GroupName=group_name)
             except Exception as e:
-                print(e)
+                raise e
         except Exception as e:
             raise e
 
         # Skipping steps is a bad idea here as if the automation fails after creation of group then we still want to
         # create a policy and attach it to the groups.
-        account_number = group_response["Group"]["Arn"].split(":")[4]
-        f = False
-        while not f:
-            while not policy_name_verified:
-                policy_name = input("$ Input name of the policy: ")
-                if self.verify_name(policy_name):
-                    policy_name_verified = True
-                else:
-                    print("$ please try again.")
-
-            try:
-                policy_arn = "arn:aws:iam::" + account_number + ":policy/" + policy_name
-                policy_response = self.iam_client.get_policy(PolicyArn=policy_arn)
-                if 200 <= policy_response['ResponseMetadata']['HTTPStatusCode'] < 300:
-                    print("$ Policy already exists with that name.")
-                    choice = input(
-                        "$ Press 1 and enter to change name and create a policy, Press anything else and enter to skip:")
-                    if choice != "1":
-                        f = True
-                    else:
-                        policy_name_verified = False
-            except self.iam_client.exceptions.NoSuchEntityException:
-                f = True
-                print("$ Policy not found create one now.")
-                while not policy_found:
-                    policy_file_path = input("$ Give the file path of the policy document: ").strip()
-                    if path.exists(policy_file_path):
-                        policy_found = True
-                    else:
-                        print("$ policy document does not exist, please recheck the path and try again.")
-                policy_file = open(policy_file_path)
-                policy_document = json.load(policy_file)
-                data = json.dumps(policy_document)
+        print("$ Creating Policy Now.")
+        if not path.exists(policy_file_path):
+            print("$ policy document does not exist, please create 'policy.json' in this directory")
+        policy_file = open(policy_file_path)
+        policy_document = json.load(policy_file)
+        data = json.dumps(policy_document)
+        try:
+            policy_response = self.iam_client.create_policy(PolicyName=policy_name, PolicyDocument=data)
+            policy_arn = policy_response['Policy']['Arn']
+        except ClientError as e:
+            if e.response['Error']['Code'] == 'EntityAlreadyExists':
+                print('$ Policy already exists creating a new version')
                 try:
-                    policy_response = self.iam_client.create_policy(PolicyName=policy_name, PolicyDocument=data)
-                    policy_arn = policy_response['Policy']['Arn']
+                    account_number = group_response["Group"]["Arn"].split(":")[4]
+                    policy_arn = "arn:aws:iam::" + account_number + ":policy/" + policy_name
+                    self.iam_client.create_policy_version(PolicyArn=policy_arn, PolicyDocument=data,
+                                                          SetAsDefault=True)
                 except Exception as e:
-                    print(e)
-            except Exception as e:
+                    raise e
+            else:
                 raise e
-
+        except Exception as e:
+            raise e
         try:
             print("$ Attaching policy now.")
             self.iam_client.attach_group_policy(GroupName=group_name, PolicyArn=policy_arn)
         except Exception as e:
-            print(e)
+            raise e
         return
 
     def create_bucket(self, user: str):
+        prefix = "wasabi-technologies-"
+        bucket_name = prefix + user
         try:
-            print("$ creating bucket named " + user)
-            self.s3_client.create_bucket(Bucket=user)
+            print("$ creating bucket named " + bucket_name)
+            self.s3_client.create_bucket(Bucket=bucket_name)
         except Exception as e:
             raise e
 
@@ -272,19 +267,35 @@ class CreateBucketsForSelf:
         # create users
         users = self.get_usernames()
 
-        if len(users) > 1000:
-            print("Cannot have more than 1000 users, please reduce the count.")
-            exit(1)
+        current_total_buckets = len(self.list_buckets['Buckets'])
+        if len(users) + current_total_buckets >= self.max_buckets:
+            print("$ WARNING " + "*" * 15)
+            print("$ You currently have " + str(current_total_buckets) + " " + "buckets\n")
+            print("$ By adding " + str(len(users)) + " " + "you would have " + str(
+                len(users) + current_total_buckets) + " " + "buckets\n")
+            choice = input("$ As there cannot be more than " + str(
+                self.max_buckets) + " buckets do you want to attempt creating as many as possible? Y/n")
+            if choice.strip().lower() == 'n':
+                exit(1)
+            print("$" + "*" * 15)
 
         # create a file to store all access and secret keys for each user.
-        file = open("keys.txt", "w")
+        if path.exists('keys.csv'):
+            remove('keys.csv')
+        file = open('keys.csv', 'w')
         file.close()
 
         # 4. Check for Group or Create one
+        print("-" * 15)
         self.create_group(group_name="admin")
 
         for user in users:
-            print("-"*15)
+            print("-" * 15)
+
+            if current_total_buckets >= self.max_buckets:
+                print("$ maximum bucket limit reached.")
+                break
+
             # 1. create users on the Wasabi cloud
             self.create_user(user)
 
@@ -297,7 +308,17 @@ class CreateBucketsForSelf:
             # 7. attach user to group
             self.add_user_to_group(user, group_name="admin")
 
+            current_total_buckets += 1
+        return
+
 
 if __name__ == '__main__':
     print("$ Welcome To Wasabi Automation $")
     obj = CreateBucketsForSelf()
+    print("-" * 15)
+    print("$ Please make sure to keep the copy of the keys.csv "
+          "file safe as it will be deleted at the start of next run $")
+    print("-" * 15)
+    print("$ Automation complete successfully $")
+    print("-" * 15)
+    exit(0)

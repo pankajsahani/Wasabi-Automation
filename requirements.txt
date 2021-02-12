@@ -1,6 +1,6 @@
 altgraph==0.17
-boto3==1.16.57
-botocore==1.19.57
+boto3==1.17.6
+botocore==1.20.6
 jmespath==0.10.0
 macholib==1.14
 pyinstaller==4.2
@@ -8,4 +8,4 @@ pyinstaller-hooks-contrib==2020.11
 python-dateutil==2.8.1
 s3transfer==0.3.4
 six==1.15.0
-urllib3==1.26.2
+urllib3==1.26.3
