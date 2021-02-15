@@ -53,12 +53,12 @@ class CreateBucketsForSelf:
     def create_connection_and_test(self, aws_access_key_id: str, aws_secret_access_key: str, region) -> bool:
         try:
             self.s3_client = client('s3',
-                                    endpoint_url='https://s3.' + region + '.wasabisys.com',
+                                    endpoint_url='https://s3.wasabibeta.com',
                                     aws_access_key_id=aws_access_key_id,
                                     aws_secret_access_key=aws_secret_access_key)
 
             self.iam_client = client('iam',
-                                     endpoint_url='https://iam.wasabisys.com',
+                                     endpoint_url='https://iam.wasabibeta.com',
                                      aws_access_key_id=aws_access_key_id,
                                      aws_secret_access_key=aws_secret_access_key,
                                      region_name='us-east-1')
@@ -232,6 +232,7 @@ class CreateBucketsForSelf:
                 try:
                     account_number = group_response["Group"]["Arn"].split(":")[4]
                     policy_arn = "arn:aws:iam::" + account_number + ":policy/" + policy_name
+                    # TODO: Fix this use a get.
                     self.iam_client.create_policy_version(PolicyArn=policy_arn, PolicyDocument=data,
                                                           SetAsDefault=True)
                 except Exception as e:
