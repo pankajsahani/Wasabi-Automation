@@ -274,7 +274,7 @@ class CreateBucketsForSelf:
         if len(users) + current_total_buckets >= self.max_buckets:
             print("$ WARNING " + "*" * 15)
             print("$ You currently have " + str(current_total_buckets) + " " + "buckets\n")
-            print("$ By adding " + str(len(users)) + " " + "you would have " + str(
+            print("$ By adding " + str(len(users)) + " " + "you may have " + str(
                 len(users) + current_total_buckets) + " " + "buckets\n")
             choice = input("$ As there cannot be more than " + str(
                 self.max_buckets) + " buckets do you want to attempt creating as many as possible? Y/n")
@@ -311,7 +311,7 @@ class CreateBucketsForSelf:
             # 7. attach user to group
             self.add_user_to_group(user, group_name="admin")
 
-            current_total_buckets += 1
+            current_total_buckets = len(self.s3_client.list_buckets()['Buckets'])
         return
 
 
