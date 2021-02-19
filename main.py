@@ -55,12 +55,12 @@ class CreateBucketsForSelf:
     def create_connection_and_test(self, aws_access_key_id: str, aws_secret_access_key: str, region) -> bool:
         try:
             self.s3_client = client('s3',
-                                    endpoint_url='https://s3.wasabibeta.com',
+                                    endpoint_url='https://s3.' + region + '.wasabisys.com',
                                     aws_access_key_id=aws_access_key_id,
                                     aws_secret_access_key=aws_secret_access_key)
 
             self.iam_client = client('iam',
-                                     endpoint_url='https://iam.wasabibeta.com',
+                                     endpoint_url='https://iam.wasabisys.com',
                                      aws_access_key_id=aws_access_key_id,
                                      aws_secret_access_key=aws_secret_access_key,
                                      region_name='us-east-1')
@@ -144,7 +144,7 @@ class CreateBucketsForSelf:
         return os.path.join(os.path.dirname(sys.executable), relative_path)
 
     def get_usernames(self) -> List[str]:
-        name_choice = input("$ Press 1 to input usernames. Press 2 to insert a file for usernames: ")
+        name_choice = input("$ Press 1 to input usernames. Press 2 to select Usernames.txt file: ")
         users = []
         # input usernames
         if name_choice.strip() == "1":
