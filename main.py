@@ -1,3 +1,5 @@
+import os
+import sys
 from typing import List
 from boto3 import client, Session
 import re
@@ -91,7 +93,7 @@ class CreateBucketsForSelf:
                 aws_secret_access_key = input("$ AWS secret access key").strip()
                 credentials_verified = True
             elif choice.strip() == "3":
-                exit(0)
+                sys.exit(0)
             else:
                 print("Invalid choice please try again")
 
@@ -136,6 +138,11 @@ class CreateBucketsForSelf:
             return False
         return True
 
+    @staticmethod
+    def resource_path(relative_path):
+        """ Get absolute path to resource, works for dev and for PyInstaller """
+        return os.path.join(os.path.dirname(sys.executable), relative_path)
+
     def get_usernames(self) -> List[str]:
         name_choice = input("$ Press 1 to input usernames. Press 2 to insert a file for usernames: ")
         users = []
@@ -151,12 +158,12 @@ class CreateBucketsForSelf:
 
         # insert users through file
         if name_choice.strip() == "2":
-            file_path = "Usernames.txt"
+            file_path = self.resource_path("Usernames.txt")
             if not path.exists(file_path):
                 print(
                     "$ File does not exist, please create 'Usernames.txt' and add users separated by "
                     "spaces in this directory")
-                exit(1)
+                sys.exit(1)
             file = open(file_path, 'r')
             for line in file:
                 for user in line.strip().lower().split():
@@ -180,7 +187,7 @@ class CreateBucketsForSelf:
 
     def create_access_key(self, user: str):
         # append to file
-        with open('keys.csv', 'a', newline='') as csv_file:
+        with open(self.resource_path('keys.csv'), 'a', newline='') as csv_file:
             file = csv.writer(csv_file)
             try:
                 response = self.iam_client.list_access_keys(UserName=user)
@@ -200,7 +207,7 @@ class CreateBucketsForSelf:
 
     def create_group(self, group_name):
         policy_name = "automation-policy"
-        policy_file_path = "policy.json"
+        policy_file_path = self.resource_path("policy.json")
 
         try:
             group_response = self.iam_client.get_group(GroupName=group_name)
@@ -279,14 +286,17 @@ class CreateBucketsForSelf:
             choice = input("$ As there cannot be more than " + str(
                 self.max_buckets) + " buckets do you want to attempt creating as many as possible? Y/n")
             if choice.strip().lower() == 'n':
-                exit(1)
+                sys.exit(1)
             print("$" + "*" * 15)
 
         # create a file to store all access and secret keys for each user.
-        if path.exists('keys.csv'):
-            remove('keys.csv')
-        file = open('keys.csv', 'w')
-        file.close()
+        p = self.resource_path('keys.csv')
+        if path.exists(p):
+            remove(p)
+        with open(p, 'w') as csv_file:
+            file = csv.writer(csv_file)
+            file.writerow(['UserName', 'AccessKeyId', 'SecretAccessKey'])
+            pass
 
         # 4. Check for Group or Create one
         print("-" * 15)
@@ -324,4 +334,4 @@ if __name__ == '__main__':
     print("-" * 15)
     print("$ Automation complete successfully $")
     print("-" * 15)
-    exit(0)
+    sys.exit(0)

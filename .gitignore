@@ -1,3 +1,10 @@
 venv
 test2.py
 test.py
+test3.py
+*.spec
+build
+dist
+keys.csv
+Usernames.txt
+policy.json
