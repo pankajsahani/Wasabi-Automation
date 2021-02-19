@@ -1,3 +1,6 @@
+"""
+***** This code was written by Ravi Voleti for Wasabi Technologies.inc *****
+"""
 import os
 import sys
 from typing import List
@@ -276,6 +279,8 @@ class CreateBucketsForSelf:
     def automate(self):
         # create users
         users = self.get_usernames()
+        # sets group name for the user.
+        group_name = "restricted-access-group"
 
         current_total_buckets = len(self.list_buckets['Buckets'])
         if len(users) + current_total_buckets >= self.max_buckets:
@@ -300,7 +305,7 @@ class CreateBucketsForSelf:
 
         # 4. Check for Group or Create one
         print("-" * 15)
-        self.create_group(group_name="admin")
+        self.create_group(group_name=group_name)
 
         for user in users:
             print("-" * 15)
@@ -319,7 +324,7 @@ class CreateBucketsForSelf:
             self.create_bucket(user)
 
             # 7. attach user to group
-            self.add_user_to_group(user, group_name="admin")
+            self.add_user_to_group(user, group_name=group_name)
 
             current_total_buckets = len(self.s3_client.list_buckets()['Buckets'])
         return
