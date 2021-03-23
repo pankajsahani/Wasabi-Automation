@@ -1,5 +1,8 @@
 automation
 --
+
+Written by Ravi Voleti for Wasabi Technologies.inc
+
 This script automates the creation of infrastructure on the Wasabi console. Generates users and buckets that are 
 only accessible by their respective users.
 
