@@ -331,12 +331,12 @@ class CreateBucketsForSelf:
 
 
 if __name__ == '__main__':
-    print("$ Welcome To Wasabi Automation $")
+    print("$ Welcome To Wasabi automation $")
     obj = CreateBucketsForSelf()
     print("-" * 15)
     print("$ Please make sure to keep the copy of the keys.csv "
           "file safe as it will be deleted at the start of next run $")
     print("-" * 15)
-    print("$ Automation complete successfully $")
+    print("$ automation complete successfully $")
     print("-" * 15)
     sys.exit(0)
