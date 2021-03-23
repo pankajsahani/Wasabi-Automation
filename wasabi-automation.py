@@ -1,6 +1,6 @@
-"""
-***** This code was written by Ravi Voleti for Wasabi Technologies.inc *****
-"""
+#  Copyright (c) 2021. This script is available as fair use for users. This script can be used freely with
+#  Wasabi Technologies.inc. Distributed by the support team at wasabi.
+
 import os
 import sys
 from typing import List
@@ -19,6 +19,10 @@ class CreateBucketsForSelf:
     max_buckets = 1000
 
     def __init__(self):
+        """
+        Constructor, that initializes access keys, region and tests for connection.
+        Then Calls the Automate function.
+        """
         connection_tested = False
         while not connection_tested:
             # select a profile from credentials file or enter secret key and access key.
@@ -35,6 +39,10 @@ class CreateBucketsForSelf:
 
     @staticmethod
     def region_selection():
+        """
+        This function presents a simple region selection input. Pressing 1-5 selects the corresponding region.
+        :return: region
+        """
         dic = {"1": "us-east-1",
                "2": "us-east-2",
                "3": "us-central-1",
@@ -56,6 +64,14 @@ class CreateBucketsForSelf:
         return region
 
     def create_connection_and_test(self, aws_access_key_id: str, aws_secret_access_key: str, region) -> bool:
+        """
+        Creates a connection to wasabi endpoint based on selected region and checks if the access keys are valid.
+        NOTE: creating the connection is not enough to test. We need to make a method call to check for its working status.
+        :param aws_access_key_id: access key string
+        :param aws_secret_access_key: secret key string
+        :param region: region string
+        :return: reference to the connection client
+        """
         try:
             self.s3_client = client('s3',
                                     endpoint_url='https://s3.' + region + '.wasabisys.com',
@@ -80,6 +96,13 @@ class CreateBucketsForSelf:
         return False
 
     def get_credentials(self):
+        """
+        This function gets the access key and secret key by 2 methods.
+        1. Select profile from aws credentials file.
+           Make sure that you have run AWS config and set up your keys in the ~/.aws/credentials file.
+        2. Insert the keys directly as a string.
+        :return: access key and secret key
+        """
         credentials_verified = False
         aws_access_key_id = None
         aws_secret_access_key = None
@@ -104,6 +127,10 @@ class CreateBucketsForSelf:
 
     @staticmethod
     def select_profile():
+        """
+        sub-function under get credentials that selects the profile form ~/.aws/credentials file.
+        :return: access key and secret key
+        """
         f = False
         while not f:
             try:
@@ -129,6 +156,11 @@ class CreateBucketsForSelf:
 
     @staticmethod
     def verify_name(name: str) -> bool:
+        """
+        Verifies the name according to aws conventions.
+        :param name: string name
+        :return: True or False
+        """
         if name == "":
             print("$ name cannot be blank, retry again")
             return False
@@ -147,6 +179,11 @@ class CreateBucketsForSelf:
         return os.path.join(os.path.dirname(sys.executable), relative_path)
 
     def get_usernames(self) -> List[str]:
+        """
+        Get the usernames for creating users and buckets. Either insert them space separated or select Usernames.txt
+        file.
+        :return: verified list of users.
+        """
         name_choice = input("$ Press 1 to input usernames. Press 2 to select Usernames.txt file: ")
         users = []
         # input usernames
@@ -177,6 +214,11 @@ class CreateBucketsForSelf:
         return users
 
     def create_user(self, user: str):
+        """
+        Sends an API call to create users.
+        :param user: string user
+        :return: Error if false.
+        """
         try:
             response = self.iam_client.get_user(UserName=user)
             if 200 <= response['ResponseMetadata']['HTTPStatusCode'] < 300:
@@ -189,6 +231,11 @@ class CreateBucketsForSelf:
         return
 
     def create_access_key(self, user: str):
+        """
+        Create access key and secret key for users created.
+        :param user: string user
+        :return: Error if false
+        """
         # append to file
         with open(self.resource_path('keys.csv'), 'a', newline='') as csv_file:
             file = csv.writer(csv_file)
@@ -209,6 +256,11 @@ class CreateBucketsForSelf:
                 raise e
 
     def create_group(self, group_name):
+        """
+        Sends an API call to create a group, policy and attach the policy to the group
+        :param group_name: string group name
+        :return: Error if false
+        """
         policy_name = "automation-policy"
         policy_file_path = self.resource_path("policy.json")
 
@@ -241,14 +293,6 @@ class CreateBucketsForSelf:
                 print('$ Policy already exists with that name skipping...')
                 account_number = group_response["Group"]["Arn"].split(":")[4]
                 policy_arn = "arn:aws:iam::" + account_number + ":policy/" + policy_name
-                # try:
-                #     account_number = group_response["Group"]["Arn"].split(":")[4]
-                #     policy_arn = "arn:aws:iam::" + account_number + ":policy/" + policy_name
-                #     policy_response = self.iam_client.get_policy(PolicyArn=policy_arn)
-                #     self.iam_client.create_policy_version(PolicyArn=policy_arn, PolicyDocument=data,
-                #                                           SetAsDefault=True)
-                # except Exception as e:
-                #     raise e
             else:
                 raise e
         except Exception as e:
@@ -261,6 +305,10 @@ class CreateBucketsForSelf:
         return
 
     def create_bucket(self, user: str):
+        """
+        Sends an API call to create a bucket.
+        :param user: string username.
+        """
         prefix = "wasabi-technologies-"
         bucket_name = prefix + user
         try:
@@ -270,6 +318,11 @@ class CreateBucketsForSelf:
             raise e
 
     def add_user_to_group(self, user: str, group_name: str):
+        """
+        adds user to group
+        :param user: string username
+        :param group_name: name of the group to attach to.
+        """
         try:
             print("$ Adding " + user + " to group " + group_name)
             self.iam_client.add_user_to_group(GroupName=group_name, UserName=user)
@@ -277,6 +330,10 @@ class CreateBucketsForSelf:
             raise e
 
     def automate(self):
+        """
+        Main process that automates the creation of users and adds them to the group.
+        :return: Error if false.
+        """
         # create users
         users = self.get_usernames()
         # sets group name for the user.
