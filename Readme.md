@@ -1,6 +1,13 @@
 automation
 --
 
+>NOTE: This infrastructure automation example follows the exact model detailed in this KB document
+>How to automate infrastructure design on Wasabi
+>https://wasabi-support.zendesk.com/hc/en-us/articles/360057225472
+
+More info on implementation details here: [How to automate infrastructure on Wasabi using Python?](https://wasabi-support.zendesk.com/hc/en-us/articles/360057225472)
+
+
 Written by Ravi Voleti for Wasabi Technologies.inc
 
 This script automates the creation of infrastructure on the Wasabi console. Generates users and buckets that are 
