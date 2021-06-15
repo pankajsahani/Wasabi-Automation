@@ -4,7 +4,7 @@ block_cipher = None
 
 
 a = Analysis(['main.py'],
-             pathex=['/Users/voletiravi/PycharmProjects/pythonProject/Automation'],
+             pathex=['/Users/voletiravi/PycharmProjects/StorageCalculator/src/automation'],
              binaries=[],
              datas=[],
              hiddenimports=[],

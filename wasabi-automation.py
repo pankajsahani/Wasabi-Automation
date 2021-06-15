@@ -43,23 +43,12 @@ class CreateBucketsForSelf:
         This function presents a simple region selection input. Pressing 1-5 selects the corresponding region.
         :return: region
         """
-        dic = {"1": "us-east-1",
-               "2": "us-east-2",
-               "3": "us-central-1",
-               "4": "eu-central-1",
-               "5": "us-west-1"
-               }
         region_selected = False
         region = ""
         while not region_selected:
-            choice = input("$ Select regions by typing a corresponding number\n"
-                           "$ 1: us-east-1\n"
-                           "$ 2: us-east-2\n"
-                           "$ 3: us-central-1\n"
-                           "$ 4: eu-central-1\n"
-                           "$ 5: us-west-1\n")
-            if str(choice) in dic:
-                region = dic[str(choice)]
+            choice = input("$ Please enter the endpoint for the bucket: ").strip().lower()
+            if len(choice) > 0:
+                region = choice
                 region_selected = True
         return region
 
@@ -74,7 +63,7 @@ class CreateBucketsForSelf:
         """
         try:
             self.s3_client = client('s3',
-                                    endpoint_url='https://s3.' + region + '.wasabisys.com',
+                                    endpoint_url=region,
                                     aws_access_key_id=aws_access_key_id,
                                     aws_secret_access_key=aws_secret_access_key)
 
