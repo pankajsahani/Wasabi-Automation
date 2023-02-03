@@ -8,7 +8,7 @@ automation
 More info on implementation details here: [How to automate infrastructure on Wasabi using Python?](https://wasabi-support.zendesk.com/hc/en-us/articles/360057225472)
 
 
-Written by Ravi Voleti for Wasabi Technologies.inc
+Written by Wasabi Technologies LLC
 
 This script automates the creation of infrastructure on the Wasabi console. Generates users and buckets that are 
 only accessible by their respective users.
